@@ -42,3 +42,6 @@ Things to get to later (if time permits):
 Decisions made during:
 - Should we allow partial charging/discharging?
   - Ideally yes, as it will be a better model, but may make logic trickier. I will try to implement as we go as this might be trickier to squeeze in later. If it gets too complex, I may revert to all-or-nothing charging/discharging.
+- Thinking about how we can handle multiple markets, I can see some complexity in tracking multiple commitments in one go, as we'll need a second state to track potential/ongoing commitments
+  - This seems like it could get a bit messy, so I'm potentially thinking about creating a fake battery to test whether we can safely commit energy before actually committing it.
+  - This will be less efficient but should be simpler to implement and reason about

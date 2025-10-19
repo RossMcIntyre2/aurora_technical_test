@@ -1,3 +1,4 @@
+import copy
 import dataclasses
 from enum import Enum
 
@@ -105,9 +106,38 @@ class Battery:
     def commit(
         self,
         commitment: BatteryCommitment,
-        test_mode: bool = False,
     ) -> BatteryCommitment:
-        # Note: this will have to return a potentially modified commitment in case
-        # of partial commitments, rather than just the original commitment as I was intending.
-        # This may well be needed for efficiency reasons anyway.
-        ...
+        energy = commitment.energy_mwh
+
+        if not self.can_commit(
+            energy, commitment.commitment_type, commitment.start_time
+        ):
+            raise CannotDispatchBatteryError(
+                "Cannot commit to the requested battery operation."
+            )
+
+        actual_energy_committed = energy
+
+        if commitment.commitment_type is BatteryCommitmentType.CHARGE:
+            new_state_of_charge = self.state_of_charge_mwh + energy
+            if new_state_of_charge > self.capacity_mwh:
+                new_state_of_charge = self.capacity_mwh
+                actual_energy_committed = new_state_of_charge - self.state_of_charge_mwh
+            self.state_of_charge_mwh = new_state_of_charge
+
+        else:
+            assert commitment.commitment_type is BatteryCommitmentType.DISCHARGE
+            self.state_of_charge_mwh -= energy
+            if self.state_of_charge_mwh < 0:
+                raise ValueError("State of charge cannot be negative after discharge.")
+
+        print(
+            f"Committed to {commitment.commitment_type.name} "
+            f"{actual_energy_committed} MWh from "
+            f"{commitment.start_time} to {commitment.end_time}."
+            f"on market {commitment.market.name}"
+        )
+
+        commitment_copy = copy.deepcopy(commitment)
+        commitment_copy.energy_mwh = actual_energy_committed
+        return commitment_copy

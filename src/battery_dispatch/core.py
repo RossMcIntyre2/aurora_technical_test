@@ -1,3 +1,4 @@
+import copy
 import dataclasses
 
 import pandas as pd
@@ -7,6 +8,7 @@ from battery_dispatch.values.battery import (
     BatteryCommitment,
     BatteryCommitmentType,
     BatteryState,
+    CannotDispatchBatteryError,
 )
 from battery_dispatch.values.market import Market
 
@@ -131,27 +133,28 @@ def run_battery_simulation_for_scenario(
                     evaluations_by_battery_state=evaluations_by_battery_state,
                 )
 
-            # Select the best commitments
-            for (
-                battery_state,
-                potential_evaluations,
-            ) in evaluations_by_battery_state.items():
-                # Sort by highest effective profit (this is not actual revenue)
-                potential_evaluations.sort(key=lambda ev: ev.revenue, reverse=True)
-                evaluations, profit = _get_possible_evaluations(
-                    potential_evaluations=potential_evaluations,
-                )
+        # Select the best commitments
+        for (
+            battery_state,
+            potential_evaluations,
+        ) in evaluations_by_battery_state.items():
+            # Sort by highest effective profit (this is not actual revenue)
+            potential_evaluations.sort(key=lambda ev: ev.revenue, reverse=True)
+            evaluations, profit = _get_possible_evaluations(
+                potential_evaluations=potential_evaluations,
+                battery=battery,
+            )
 
-                if profit > best_effective_profit:
-                    best_effective_profit = profit
-                    best_commitments = evaluations
+            if profit > best_effective_profit:
+                best_effective_profit = profit
+                best_commitments = evaluations
 
-            if len(best_commitments) > 0:
-                for evaluation in best_commitments:
-                    commitment = evaluation.commitment
-                    battery.add_commitments(new_commitments=[commitment])
+        if len(best_commitments) > 0:
+            for evaluation in best_commitments:
+                commitment = evaluation.commitment
+                battery.add_commitments(new_commitments=[commitment])
 
-            print("\n")
+        print("\n")
 
     battery_revenue = 10
     battery_cost = 5
@@ -230,13 +233,34 @@ def attempt_discharge(
 def _get_possible_evaluations(
     *,
     potential_evaluations: list[CommitmentEvaluation],
+    battery: Battery,
 ) -> tuple[list[CommitmentEvaluation], float]:
-
     # Make a copy of the battery to simulate commitments
-    print("Copying battery for testing commitments...")
-    # TODO: Implement copy
-    # Return the first one, since we are just simply taking the most profitable opportunity
-    return [potential_evaluations[0]], 0.0
+    # We could maybe use dataclasses.replace here but deepcopy is safer because of nested structures
+    battery_copy = copy.deepcopy(battery)
+
+    profit = 0.0
+    evaluations: list[CommitmentEvaluation] = []
+
+    for evaluation in potential_evaluations:
+        commitment = evaluation.commitment
+        try:
+            final_commitment = battery_copy.commit(commitment=commitment)
+            # Update the final commitment to make sure we have the correct energy dispatched,
+            # as we could accidentally overestimate the profit if we're not able to dispatch the full amount
+            profit += evaluation.revenue * (
+                final_commitment.energy_mwh / commitment.energy_mwh
+            )
+            evaluation.commitment = final_commitment
+            evaluations.append(evaluation)
+
+            # Take the first successful commitment only as it only makes sense to dispatch to the best option
+            break
+
+        except CannotDispatchBatteryError:
+            continue
+
+    return evaluations, profit
 
 
 if __name__ == "__main__":

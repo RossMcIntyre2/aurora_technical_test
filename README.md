@@ -1,0 +1,39 @@
+Plan (update as I go):
+
+- Create initial dataclasses for core modelling concepts (with fields based on given data):
+  - Battery
+  - Market
+  - Commitment of energy for market (link between the two above)
+
+- Implement methods on these dataclasses for basic operations
+
+Rough idea for first pass is:
+- Choose the smallest time interval and evaluate best choice at each interval
+- Implement a simple algorithm to check whether to charge or discharge based on market prices
+- To start with, assume we know all market prices in advance (here we can do this but probably a big assumption in reality)
+- To mostly simply guess where the best profit lies, get the average price across both markets - if current price is above average, discharge, if below, charge
+- Since there are two markets, we can do this independently for each market and see which gives better effective profit
+- Ignore efficiency for now - will be easier to add in later
+
+This gives some operations we will need to implement on the dataclasses:
+  - Battery: 
+    - charge
+    - discharge
+    - get state of charge/capacity
+    - check if can charge/discharge
+    - I think we should separate adding and clearing commitments to markets since they have differing intervals, and we need to make sure we track ongoing commitments
+  
+  - Market:
+    - check if we are on the correct interval
+    - average price
+
+- Write tests for dataclass methods
+- Write a simple version of this with dummy functions to see what we might need to add
+- Write an integration test to check overall functionality
+- Fill in remainder of algorithm details and edge cases (e.g. what happens if battery is full/empty)
+- Fix any issues found in testing
+
+Things to get to later (if time permits):
+- More sophisticated algorithm for deciding when to charge/discharge (e.g. look ahead a few intervals rather than overall average)
+- Consider efficiency
+- Consider using an optimisation package for even better results (e.g. pyomo, scipy.optimize), although I have never used these so it will mostly be exploratory

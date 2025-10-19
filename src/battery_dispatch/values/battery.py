@@ -79,9 +79,28 @@ class Battery:
         energy_mwh: float,
         commitment_type: BatteryCommitmentType,
         current_timestamp: pd.DatetimeIndex,
-    ) -> bool: ...
+    ) -> bool:
+        # Check we aren't trying to discharge when we are charging (or vice versa)
+        current_mode = self.current_mode(current_timestamp)
+        if (
+            current_mode is BatteryState.CHARGING
+            and commitment_type is BatteryCommitmentType.DISCHARGE
+        ) or (
+            current_mode is BatteryState.DISCHARGING
+            and commitment_type is BatteryCommitmentType.CHARGE
+        ):
+            return False
 
-    def add_commitments(self, new_commitments: list[BatteryCommitment]) -> None: ...
+        # Check we have enough capacity / state of charge
+        if commitment_type is BatteryCommitmentType.CHARGE:
+            # Allow zero for now as future commitments may still be involved in this calculation
+            # TODO: Refine this logic
+            return self.available_capacity(current_timestamp) >= 0
+        elif commitment_type is BatteryCommitmentType.DISCHARGE:
+            return self.available_state_of_charge(current_timestamp) >= energy_mwh
+
+    def add_commitments(self, new_commitments: list[BatteryCommitment]) -> None:
+        self.commitments += new_commitments
 
     def commit(
         self,

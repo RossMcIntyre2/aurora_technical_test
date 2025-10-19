@@ -103,6 +103,25 @@ class TestBattery:
             == max_capacity - current_state_of_charge - charge_commitment
         )
 
+    def test_add_commitments(self):
+        battery = self._data_builder.add_battery()
+        new_commitments = [
+            self._data_builder.add_battery_commitment(
+                commitment_type=BatteryCommitmentType.CHARGE,
+                energy_mwh=10,
+                start_time="2025-01-01 00:00:00",
+                end_time="2025-01-01 01:00:00",
+            ),
+            self._data_builder.add_battery_commitment(
+                commitment_type=BatteryCommitmentType.DISCHARGE,
+                energy_mwh=15,
+                start_time="2025-01-01 02:00:00",
+                end_time="2025-01-01 03:00:00",
+            ),
+        ]
+        battery.add_commitments(new_commitments=new_commitments)
+        assert len(battery.commitments) == 2
+
     def test_cannot_commit_to_discharge_if_charging(self):
         commitment = self._data_builder.add_battery_commitment(
             commitment_type=BatteryCommitmentType.CHARGE,

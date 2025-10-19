@@ -2,7 +2,12 @@ import dataclasses
 
 import pandas as pd
 
-from battery_dispatch.values.battery import Battery, BatteryCommitment, BatteryState, BatteryCommitmentType
+from battery_dispatch.values.battery import (
+    Battery,
+    BatteryCommitment,
+    BatteryCommitmentType,
+    BatteryState,
+)
 from battery_dispatch.values.market import Market
 
 
@@ -76,16 +81,13 @@ def run_battery_simulation_for_scenario(
         battery.commit_expired_commitments(current_timestamp=timestamp)
 
         best_commitments: list[CommitmentEvaluation] = []
-        best_profit = 0.0
+        # Effective profit because the plan is to compare against the average -
+        # using this method I can only really evaluate profit at the end of the interval
+        best_effective_profit = 0.0
 
         # Since we limit the battery to only be able to do one operation at once (charge or discharge)
         # we are basically choosing between charging or discharging based on the best price across all markets
         # so we can loop through all markets and find the best option to decide whether we charge or discharge
-
-        best_commitments = []
-        # Effective profit because the plan is to compare against the average -
-        # using this method I can only really evaluate profit at the end of the interval
-        best_effective_profit = 0.0
 
         evaluations_by_battery_state: dict[BatteryState, list[CommitmentEvaluation]] = {
             BatteryState.CHARGING: [],
@@ -93,7 +95,11 @@ def run_battery_simulation_for_scenario(
         }
 
         for battery_state in evaluations_by_battery_state.keys():
-            if battery_state is not battery.current_mode(current_timestamp=timestamp) and battery.current_mode(current_timestamp=timestamp) is not BatteryState.IDLE:
+            if (
+                battery_state is not battery.current_mode(current_timestamp=timestamp)
+                and battery.current_mode(current_timestamp=timestamp)
+                is not BatteryState.IDLE
+            ):
                 # Can't cancel commitments mid-way through, so we can't switch states
                 continue
 
@@ -109,28 +115,21 @@ def run_battery_simulation_for_scenario(
                 duration = market.interval_timedelta()
 
                 if battery_state is BatteryState.CHARGING:
-                    attempt_charge(
-                        battery_state=battery_state,
-                        battery=battery,
-                        duration=duration,
-                        market=market,
-                        price=price,
-                        timestamp=timestamp,
-                        average_market_price=average_market_price,
-                        evaluations_by_battery_state=evaluations_by_battery_state,
-                    )
+                    dispatch_fn = attempt_charge
                 else:
                     assert battery_state is BatteryState.DISCHARGING
-                    attempt_discharge(
-                        battery_state=battery_state,
-                        battery=battery,
-                        duration=duration,
-                        market=market,
-                        price=price,
-                        timestamp=timestamp,
-                        average_market_price=average_market_price,
-                        evaluations_by_battery_state=evaluations_by_battery_state,
-                    )
+                    dispatch_fn = attempt_discharge
+
+                dispatch_fn(
+                    battery_state=battery_state,
+                    battery=battery,
+                    duration=duration,
+                    market=market,
+                    price=price,
+                    timestamp=timestamp,
+                    average_market_price=average_market_price,
+                    evaluations_by_battery_state=evaluations_by_battery_state,
+                )
 
             # Select the best commitments
             for (
@@ -143,8 +142,8 @@ def run_battery_simulation_for_scenario(
                     potential_evaluations=potential_evaluations,
                 )
 
-                if profit > best_profit:
-                    best_profit = profit
+                if profit > best_effective_profit:
+                    best_effective_profit = profit
                     best_commitments = evaluations
 
             if len(best_commitments) > 0:
@@ -159,6 +158,7 @@ def run_battery_simulation_for_scenario(
     print(
         f"\n Total Revenue: {battery_revenue:.2f} GBP, Total Cost: {battery_cost:.2f} GBP, Total Profit: {battery_revenue - battery_cost:.2f} GBP, Final State of Charge: {battery.state_of_charge_mwh:.2f} MWh"
     )
+
 
 # TODO: Abstract common logic between attempt_charge and attempt_discharge
 def attempt_charge(
@@ -237,7 +237,6 @@ def _get_possible_evaluations(
     # TODO: Implement copy
     # Return the first one, since we are just simply taking the most profitable opportunity
     return [potential_evaluations[0]], 0.0
-
 
 
 if __name__ == "__main__":

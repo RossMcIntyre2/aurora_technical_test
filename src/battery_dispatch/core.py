@@ -22,8 +22,8 @@ class CommitmentEvaluation:
 def create_market_from_data(csv_path: str, interval_hours: float) -> Market:
     prices = pd.read_csv(csv_path, parse_dates=True)
     price_series = pd.Series(
-        data=prices["price"].values,
-        index=pd.to_datetime(prices["timestamp"].dt.strftime("%m/%d/%Y %H:%M")),
+        data=prices["price [£/MWh]"].values,
+        index=pd.to_datetime(prices["timestamp"], format="%m/%d/%y %H:%M"),
     )
     market = Market(
         name=f"Market_{interval_hours}h",
@@ -36,10 +36,10 @@ def create_market_from_data(csv_path: str, interval_hours: float) -> Market:
 def run_battery_simulation() -> None:
     print("Running battery simulation... (this is a placeholder function)")
     market_1 = create_market_from_data(
-        csv_path="data/half-hourly-data.csv", interval_hours=0.5
+        csv_path="src/data/half-hourly-data.csv", interval_hours=0.5
     )
     market_2 = create_market_from_data(
-        csv_path="data/hourly-data.csv", interval_hours=1.0
+        csv_path="src/data/hourly-data.csv", interval_hours=1.0
     )
     battery = Battery(
         capacity_mwh=4.0,
@@ -150,6 +150,7 @@ def run_battery_simulation_for_scenario(
                 best_commitments = evaluations
 
         if len(best_commitments) > 0:
+            assert len(best_commitments) == 1
             for evaluation in best_commitments:
                 commitment = evaluation.commitment
                 battery.add_commitments(new_commitments=[commitment])
@@ -179,6 +180,7 @@ def attempt_charge(
     cost = price * energy
     average_cost_for_energy = average_market_price * energy
     cost_improvement_from_average = average_cost_for_energy - cost
+    print(cost_improvement_from_average)
     if cost_improvement_from_average > 0:
         charge_commitment = BatteryCommitment(
             market=market,
@@ -243,7 +245,7 @@ def _get_possible_evaluations(
     for evaluation in potential_evaluations:
         commitment = evaluation.commitment
         try:
-            final_commitment = battery_copy.commit(commitment=commitment)
+            final_commitment = battery_copy.commit(commitment=commitment, output=False)
             # Update the final commitment to make sure we have the correct energy dispatched,
             # as we could accidentally overestimate the profit if we're not able to dispatch the full amount
             profit += evaluation.revenue * (

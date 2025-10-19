@@ -52,13 +52,15 @@ class Battery:
             if commitment.end_time <= current_timestamp
         ]
         for commitment in commitments_to_commit:
+            # Remove commitment first to avoid its commitment being incorporated
+            # into available capacity/state_of_charge calculations
+            self.commitments.remove(commitment)
             self.commit(commitment=commitment)
             self._update_financial_state(
                 commitment_type=commitment.commitment_type,
                 value=commitment.energy_mwh
                 * commitment.market.prices[commitment.start_time],
             )
-            self.commitments.remove(commitment)
 
     def _update_financial_state(
         self, *, commitment_type: BatteryCommitmentType, value: float
@@ -136,6 +138,7 @@ class Battery:
         self,
         *,
         commitment: BatteryCommitment,
+        output: bool = True,
     ) -> BatteryCommitment:
         energy = commitment.energy_mwh
 
@@ -163,12 +166,13 @@ class Battery:
             if self.state_of_charge_mwh < 0:
                 raise ValueError("State of charge cannot be negative after discharge.")
 
-        print(
-            f"Committed to {commitment.commitment_type.name} "
-            f"{actual_energy_committed} MWh from "
-            f"{commitment.start_time} to {commitment.end_time}."
-            f"on market {commitment.market.name}"
-        )
+        if output:
+            print(
+                f"Committed to {commitment.commitment_type.name} "
+                f"{actual_energy_committed} MWh from "
+                f"{commitment.start_time} to {commitment.end_time}."
+                f"on market {commitment.market.name}"
+            )
 
         commitment_copy = copy.deepcopy(commitment)
         commitment_copy.energy_mwh = actual_energy_committed

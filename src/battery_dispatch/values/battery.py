@@ -65,4 +65,8 @@ class Battery:
         self,
         commitment: BatteryCommitment,
         test_mode: bool = False,
-    ) -> BatteryCommitment: ...
+    ) -> BatteryCommitment:
+        # Note: this will have to return a potentially modified commitment in case
+        # of partial commitments, rather than just the original commitment as I was intending.
+        # This may well be needed for efficiency reasons anyway.
+        ...

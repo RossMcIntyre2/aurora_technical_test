@@ -161,23 +161,20 @@ class TestBattery:
             is False
         )
 
-    def cannot_commit_to_charge_if_capacity_too_low(self):
+    def test_committing_more_than_capacity_only_commits_up_to_capacity(self):
         battery = self._data_builder.add_battery(
             capacity_mwh=100,
-            state_of_charge_mwh=95,
+            state_of_charge_mwh=90,
         )
-        # Do we actually want this? A battery should be able to commit to charge even
-        # if it can't take the full amount?
-        # TODO: Revisit later to decide on desired behavior, maybe this makes the algorithm
-        #  more complex if we consider partial commitments
-        assert (
-            battery.can_commit(
-                energy_mwh=10,
-                commitment_type=BatteryCommitmentType.CHARGE,
-                current_timestamp="2025-01-01 00:00:00",
-            )
-            is False
+        commitment = self._data_builder.add_battery_commitment(
+            commitment_type=BatteryCommitmentType.CHARGE,
+            energy_mwh=20,
+            start_time="2025-01-01 00:00:00",
+            end_time="2025-01-01 01:00:00",
         )
+        final_commitment = battery.commit(commitment=commitment)
+        assert battery.state_of_charge_mwh == 100
+        assert final_commitment.energy_mwh == 10
 
     def test_commit(self):
         battery = self._data_builder.add_battery(

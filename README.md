@@ -37,3 +37,8 @@ Things to get to later (if time permits):
 - More sophisticated algorithm for deciding when to charge/discharge (e.g. look ahead a few intervals rather than overall average)
 - Consider efficiency
 - Consider using an optimisation package for even better results (e.g. pyomo, scipy.optimize), although I have never used these so it will mostly be exploratory
+
+
+Decisions made during:
+- Should we allow partial charging/discharging?
+  - Ideally yes, as it will be a better model, but may make logic trickier. I will try to implement as we go as this might be trickier to squeeze in later. If it gets too complex, I may revert to all-or-nothing charging/discharging.

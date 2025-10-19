@@ -265,3 +265,17 @@ class TestBattery:
         battery.commit_expired_commitments(current_timestamp="2025-01-01 00:30:00")
         assert battery.state_of_charge_mwh == 65
         assert len(battery.commitments) == 1
+
+    def test_update_financial_state(self):
+        battery = self._data_builder.add_battery()
+        battery._update_financial_state(
+            commitment_type=BatteryCommitmentType.CHARGE, value=123.45
+        )
+        assert battery.revenue == 0
+        assert battery.cost == 123.45
+
+        battery._update_financial_state(
+            commitment_type=BatteryCommitmentType.DISCHARGE, value=543.21
+        )
+        assert battery.revenue == 543.21
+        assert battery.cost == 123.45

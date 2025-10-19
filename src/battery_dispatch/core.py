@@ -156,10 +156,8 @@ def run_battery_simulation_for_scenario(
 
         print("\n")
 
-    battery_revenue = 10
-    battery_cost = 5
     print(
-        f"\n Total Revenue: {battery_revenue:.2f} GBP, Total Cost: {battery_cost:.2f} GBP, Total Profit: {battery_revenue - battery_cost:.2f} GBP, Final State of Charge: {battery.state_of_charge_mwh:.2f} MWh"
+        f"\n Total Revenue: {battery.revenue:.2f} GBP, Total Cost: {battery.cost:.2f} GBP, Total Profit: {battery.revenue - battery.cost:.2f} GBP, Final State of Charge: {battery.state_of_charge_mwh:.2f} MWh"
     )
 
 

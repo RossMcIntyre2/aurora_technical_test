@@ -48,3 +48,7 @@ Decisions made during:
 - When writing integration tests, I realise that dispatching to two markets at once doesn't really make sense in the same time interval with the assumptions we have, since we would always prefer the higher price market
   - So I will assume we can only commit to one market at a time, which simplifies things a bit
   - In reality this may not be the case, as maybe there are ways that we can split energy between markets more efficiently
+- I don't think this is necessarily the best way, but here I am going to track cost and revenue on the battery itself, since it is within the battery logic that we are making decisions about what to commit.
+  - Maybe we should have had a service like a `BatteryManager` to handle this, but it would take too long to refactor now
+  - This is mainly because the cost and revenue are dependent on the final amount of change dispatched, which I only evaluate at the point of committing to a market
+  - This is maybe a weakness in this approach

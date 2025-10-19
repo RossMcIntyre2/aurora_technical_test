@@ -40,6 +40,8 @@ class Battery:
     discharge_efficiency: float
     state_of_charge_mwh: float
     commitments: list[BatteryCommitment] = dataclasses.field(default_factory=list)
+    revenue: float = 0.0
+    cost: float = 0.0
 
     def commit_expired_commitments(
         self, *, current_timestamp: pd.DatetimeIndex
@@ -51,7 +53,20 @@ class Battery:
         ]
         for commitment in commitments_to_commit:
             self.commit(commitment=commitment)
+            self._update_financial_state(
+                commitment_type=commitment.commitment_type,
+                value=commitment.energy_mwh
+                * commitment.market.prices[commitment.start_time],
+            )
             self.commitments.remove(commitment)
+
+    def _update_financial_state(
+        self, *, commitment_type: BatteryCommitmentType, value: float
+    ) -> None:
+        if commitment_type is BatteryCommitmentType.CHARGE:
+            self.cost += value
+        elif commitment_type is BatteryCommitmentType.DISCHARGE:
+            self.revenue += value
 
     def current_mode(self, *, current_timestamp: pd.DatetimeIndex) -> BatteryState:
         for commitment in self.commitments:

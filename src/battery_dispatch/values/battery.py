@@ -56,11 +56,23 @@ class Battery:
                 )
         return BatteryState.IDLE
 
-    def available_state_of_charge(
-        self, current_timestamp: pd.DatetimeIndex
-    ) -> float: ...
+    def available_state_of_charge(self, current_timestamp: pd.DatetimeIndex) -> float:
+        discharge_commitment = sum(
+            commitment.energy_mwh
+            for commitment in self.commitments
+            if commitment.commitment_type is BatteryCommitmentType.DISCHARGE
+            and commitment.start_time <= current_timestamp < commitment.end_time
+        )
+        return self.state_of_charge_mwh - discharge_commitment
 
-    def available_capacity(self, current_timestamp: pd.DatetimeIndex) -> float: ...
+    def available_capacity(self, current_timestamp: pd.DatetimeIndex) -> float:
+        charge_commitment = sum(
+            commitment.energy_mwh
+            for commitment in self.commitments
+            if commitment.commitment_type is BatteryCommitmentType.CHARGE
+            and commitment.start_time <= current_timestamp < commitment.end_time
+        )
+        return self.capacity_mwh - self.state_of_charge_mwh - charge_commitment
 
     def can_commit(
         self,

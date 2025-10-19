@@ -84,8 +84,8 @@ class DataBuilder:
         market: Union[Undefined, Market] = undefined,
         commitment_type: Union[Undefined, BatteryCommitmentType] = undefined,
         energy_mwh: Union[Undefined, float] = undefined,
-        start_time: Union[Undefined, pd.DatetimeIndex] = undefined,
-        end_time: Union[Undefined, pd.DatetimeIndex] = undefined,
+        start_time: Union[Undefined, str] = undefined,
+        end_time: Union[Undefined, str] = undefined,
     ) -> BatteryCommitment:
         if market is undefined:
             market = self.add_market()
@@ -97,7 +97,9 @@ class DataBuilder:
             energy_mwh = 10.0
 
         if start_time is undefined:
-            start_time = pd.Timestamp("2025-01-01 00:00")
+            start_time = pd.date_range(
+                start="2025-01-01 00:00:00", periods=1, freq="1h"
+            )
 
         if end_time is undefined:
             end_time = start_time + pd.Timedelta(hours=market.interval_hours)

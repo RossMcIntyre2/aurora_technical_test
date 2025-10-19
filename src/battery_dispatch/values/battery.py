@@ -41,9 +41,15 @@ class Battery:
     state_of_charge_mwh: float
     commitments: list[BatteryCommitment] = dataclasses.field(default_factory=list)
 
-    def commit_expired_commitments(
-        self, current_timestamp: pd.DatetimeIndex
-    ) -> None: ...
+    def commit_expired_commitments(self, current_timestamp: pd.DatetimeIndex) -> None:
+        commitments_to_commit = [
+            commitment
+            for commitment in self.commitments
+            if commitment.end_time <= current_timestamp
+        ]
+        for commitment in commitments_to_commit:
+            self.commit(commitment=commitment)
+            self.commitments.remove(commitment)
 
     def current_mode(self, current_timestamp: pd.DatetimeIndex) -> BatteryState:
         for commitment in self.commitments:

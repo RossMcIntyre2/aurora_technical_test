@@ -45,3 +45,6 @@ Decisions made during:
 - Thinking about how we can handle multiple markets, I can see some complexity in tracking multiple commitments in one go, as we'll need a second state to track potential/ongoing commitments
   - This seems like it could get a bit messy, so I'm potentially thinking about creating a fake battery to test whether we can safely commit energy before actually committing it.
   - This will be less efficient but should be simpler to implement and reason about
+- When writing integration tests, I realise that dispatching to two markets at once doesn't really make sense in the same time interval with the assumptions we have, since we would always prefer the higher price market
+  - So I will assume we can only commit to one market at a time, which simplifies things a bit
+  - In reality this may not be the case, as maybe there are ways that we can split energy between markets more efficiently

@@ -44,7 +44,17 @@ class Battery:
         self, current_timestamp: pd.DatetimeIndex
     ) -> None: ...
 
-    def current_mode(self, current_timestamp: pd.DatetimeIndex) -> BatteryState: ...
+    def current_mode(self, current_timestamp: pd.DatetimeIndex) -> BatteryState:
+        for commitment in self.commitments:
+            # We should only have one type of commitment at a time if we call can_commit()
+            # properly, so can safely take the first one here
+            if commitment.start_time <= current_timestamp < commitment.end_time:
+                return (
+                    BatteryState.CHARGING
+                    if commitment.commitment_type is BatteryCommitmentType.CHARGE
+                    else BatteryState.DISCHARGING
+                )
+        return BatteryState.IDLE
 
     def available_state_of_charge(
         self, current_timestamp: pd.DatetimeIndex

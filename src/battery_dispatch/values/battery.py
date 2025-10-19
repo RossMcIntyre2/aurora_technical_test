@@ -41,7 +41,9 @@ class Battery:
     state_of_charge_mwh: float
     commitments: list[BatteryCommitment] = dataclasses.field(default_factory=list)
 
-    def commit_expired_commitments(self, current_timestamp: pd.DatetimeIndex) -> None:
+    def commit_expired_commitments(
+        self, *, current_timestamp: pd.DatetimeIndex
+    ) -> None:
         commitments_to_commit = [
             commitment
             for commitment in self.commitments
@@ -51,7 +53,7 @@ class Battery:
             self.commit(commitment=commitment)
             self.commitments.remove(commitment)
 
-    def current_mode(self, current_timestamp: pd.DatetimeIndex) -> BatteryState:
+    def current_mode(self, *, current_timestamp: pd.DatetimeIndex) -> BatteryState:
         for commitment in self.commitments:
             # We should only have one type of commitment at a time if we call can_commit()
             # properly, so can safely take the first one here
@@ -63,7 +65,9 @@ class Battery:
                 )
         return BatteryState.IDLE
 
-    def available_state_of_charge(self, current_timestamp: pd.DatetimeIndex) -> float:
+    def available_state_of_charge(
+        self, *, current_timestamp: pd.DatetimeIndex
+    ) -> float:
         discharge_commitment = sum(
             commitment.energy_mwh
             for commitment in self.commitments
@@ -72,7 +76,7 @@ class Battery:
         )
         return self.state_of_charge_mwh - discharge_commitment
 
-    def available_capacity(self, current_timestamp: pd.DatetimeIndex) -> float:
+    def available_capacity(self, *, current_timestamp: pd.DatetimeIndex) -> float:
         charge_commitment = sum(
             commitment.energy_mwh
             for commitment in self.commitments
@@ -83,12 +87,13 @@ class Battery:
 
     def can_commit(
         self,
+        *,
         energy_mwh: float,
         commitment_type: BatteryCommitmentType,
         current_timestamp: pd.DatetimeIndex,
     ) -> bool:
         # Check we aren't trying to discharge when we are charging (or vice versa)
-        current_mode = self.current_mode(current_timestamp)
+        current_mode = self.current_mode(current_timestamp=current_timestamp)
         if (
             current_mode is BatteryState.CHARGING
             and commitment_type is BatteryCommitmentType.DISCHARGE
@@ -102,21 +107,27 @@ class Battery:
         if commitment_type is BatteryCommitmentType.CHARGE:
             # Allow zero for now as future commitments may still be involved in this calculation
             # TODO: Refine this logic
-            return self.available_capacity(current_timestamp) >= 0
+            return self.available_capacity(current_timestamp=current_timestamp) >= 0
         elif commitment_type is BatteryCommitmentType.DISCHARGE:
-            return self.available_state_of_charge(current_timestamp) >= energy_mwh
+            return (
+                self.available_state_of_charge(current_timestamp=current_timestamp)
+                >= energy_mwh
+            )
 
-    def add_commitments(self, new_commitments: list[BatteryCommitment]) -> None:
+    def add_commitments(self, *, new_commitments: list[BatteryCommitment]) -> None:
         self.commitments += new_commitments
 
     def commit(
         self,
+        *,
         commitment: BatteryCommitment,
     ) -> BatteryCommitment:
         energy = commitment.energy_mwh
 
         if not self.can_commit(
-            energy, commitment.commitment_type, commitment.start_time
+            energy_mwh=energy,
+            commitment_type=commitment.commitment_type,
+            current_timestamp=commitment.start_time,
         ):
             raise CannotDispatchBatteryError(
                 "Cannot commit to the requested battery operation."

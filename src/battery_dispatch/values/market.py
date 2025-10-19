@@ -16,7 +16,7 @@ class Market:
     def interval_timedelta(self) -> pd.Timedelta:
         return pd.Timedelta(hours=self.interval_hours)
 
-    def is_interval_start(self, timestamp: pd.Timestamp) -> bool:
+    def is_interval_start(self, *, timestamp: pd.Timestamp) -> bool:
         if self.interval_hours == 1.0:
             return bool(timestamp.minute == 0)
         elif self.interval_hours == 0.5:

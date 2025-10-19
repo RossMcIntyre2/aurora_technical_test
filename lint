@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+
+black .
+isort .
+flake8 src tests
+mypy src tests
+
+echo "Success, no issues found"

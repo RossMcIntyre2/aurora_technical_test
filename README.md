@@ -1,3 +1,27 @@
+```Approach```:
+The approach I took for this problem was to first create dataclasses to represent the core concepts of 
+Battery and Market, along with their associated methods for operations like charging, discharging, and checking viability of dispatching.
+I used TDD to ensure expected behaviour of these methods. I did similarly for the main dispatching logic, starting 
+with a simple algorithm based on average prices and then refining it to look ahead a few intervals to make better decisions.
+The algorithm assumes knowledge of future prices, and looks ahead a variable (set at the outset) number of hours to 
+determine local minima and maxima for charging and discharging respectively. If we are at a local minimum, 
+we charge the battery, and vice-versa. Some simplifications were made, such as ignoring efficiency and only allowing
+one market commitment at a time, to keep the problem manageable within the time constraints. Initial implementation
+with the average price algorithm yielded a profit of around £66k, while the lookahead algorithm improved this to over £200k 
+(not taking into account diminishing factors such as battery wear and efficiency). Full results are shown at the bottom for the latest version of the algorithm.
+
+```Instructions for running the code```:
+- Clone the repository
+- `python3 -m venv venv` to create a virtual environment
+- `source venv/bin/activate` to activate the virtual environment
+- `cd` into `aurora_technical_test`
+- `pip install -e .` to install dependencies
+- (Optional) `pip install -r requirements-dev.txt` to install dev dependencies (to run e.g. pytest)
+- Run main execution script with `python -m battery_dispatch.core`
+- I haven't set up any command line arguments, so to change parameters you will need to edit the script directly in `src/battery_dispatch/core.py`
+
+
+```NOTES MADE DURING DEVELOPMENT```:
 Plan (update as I go):
 
 - Create initial dataclasses for core modelling concepts (with fields based on given data):
@@ -62,15 +86,25 @@ Decisions made during:
   - Initially getting worse results since I am buying and selling whenever there is a better price in future, meaning I a getting a loss
   - Instead checking that I'm at a local minimum or maximum fixes this and gives much better results
   - A quick test with varying the number of hours to look ahead:
+  
 1: `Total Revenue: 751813.03 GBP, Total Cost: 527411.24 GBP, Total Profit: 224401.79 GBP, Final State of Charge: 2.00 MWh`
+
 2: `Total Revenue: 578675.99 GBP, Total Cost: 365779.04 GBP, Total Profit: 212896.94 GBP, Final State of Charge: 2.00 MWh`
+
 3: `Total Revenue: 503920.46 GBP, Total Cost: 299147.13 GBP, Total Profit: 204773.34 GBP, Final State of Charge: 2.00 MWh`
+
 4: `Total Revenue: 456785.43 GBP, Total Cost: 259832.82 GBP, Total Profit: 196952.61 GBP, Final State of Charge: 2.00 MWh`
+
 5: `Total Revenue: 419631.25 GBP, Total Cost: 229647.02 GBP, Total Profit: 189984.23 GBP, Final State of Charge: 2.00 MWh`
+
 6: `Total Revenue: 388349.88 GBP, Total Cost: 205180.90 GBP, Total Profit: 183168.98 GBP, Final State of Charge: 2.00 MWh`
+
 7: `Total Revenue: 356682.32 GBP, Total Cost: 181473.64 GBP, Total Profit: 175208.68 GBP, Final State of Charge: 2.00 MWh`
+
 8: `Total Revenue: 324131.68 GBP, Total Cost: 158289.82 GBP, Total Profit: 165841.86 GBP, Final State of Charge: 2.00 MWh`
+
 9: `Total Revenue: 298280.70 GBP, Total Cost: 140735.93 GBP, Total Profit: 157544.77 GBP, Final State of Charge: 2.00 MWh`
+
 10: `Total Revenue: 278939.15 GBP, Total Cost: 127922.17 GBP, Total Profit: 151016.98 GBP, Final State of Charge: 2.00 MWh`
   - The sweet spot here is kind of difficult to tell without taking considerations about battery wear etc. into account, but I think 2-4 hours seems to be a good balance between complexity and performance
 

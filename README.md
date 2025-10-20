@@ -55,3 +55,25 @@ Decisions made during:
 - Although I built this to handle multiple concurrent commitments, on reflection I decided to change to only allowing one at a time
   - This is because we assume any current commitments are using the maximum power available, and we have committed to them already so we cannot take on more commitments
   - This would simplify the logic a bit in places, but leaving as it is for now as it offers better flexibility if we want to change this assumption later
+
+- Now trying a quick run at a better algorithm of looking ahead a few intervals rather than just using the average price
+  - This will also add a bit of complexity to the code, but I think it's worth it for better performance
+  - Baseline profit is £66.3k `Total Revenue: 308363.22 GBP, Total Cost: 242089.62 GBP, Total Profit: 66273.59 GBP, Final State of Charge: 0.00 MWh`
+  - Initially getting worse results since I am buying and selling whenever there is a better price in future, meaning I a getting a loss
+  - Instead checking that I'm at a local minimum or maximum fixes this and gives much better results
+  - A quick test with varying the number of hours to look ahead:
+1: `Total Revenue: 903753.64 GBP, Total Cost: 691822.99 GBP, Total Profit: 211930.64 GBP, Final State of Charge: 3.00 MWh`
+2: `Total Revenue: 660886.75 GBP, Total Cost: 449344.50 GBP, Total Profit: 211542.25 GBP, Final State of Charge: 3.00 MWh`
+3: `Total Revenue: 567225.09 GBP, Total Cost: 360220.72 GBP, Total Profit: 207004.37 GBP, Final State of Charge: 3.00 MWh`
+4: `Total Revenue: 513492.61 GBP, Total Cost: 311774.47 GBP, Total Profit: 201718.15 GBP, Final State of Charge: 3.00 MWh`
+5: `Total Revenue: 475872.96 GBP, Total Cost: 278322.83 GBP, Total Profit: 197550.13 GBP, Final State of Charge: 3.00 MWh`
+6: `Total Revenue: 444093.80 GBP, Total Cost: 250792.82 GBP, Total Profit: 193300.99 GBP, Final State of Charge: 3.00 MWh`
+7: `Total Revenue: 407623.35 GBP, Total Cost: 221019.95 GBP, Total Profit: 186603.40 GBP, Final State of Charge: 3.00 MWh`
+8: `Total Revenue: 366222.98 GBP, Total Cost: 189479.30 GBP, Total Profit: 176743.68 GBP, Final State of Charge: 3.00 MWh`
+9: `Total Revenue: 34768.00 GBP, Total Cost: 166820.85 GBP, Total Profit: 167947.15 GBP, Final State of Charge: 3.00 MWh`
+10: `Total Revenue: 310869.16 GBP, Total Cost: 150210.33 GBP, Total Profit: 160658.83 GBP, Final State of Charge: 3.00 MWh`
+  - The sweet spot here is kind of difficult to tell without taking considerations about battery wear etc. into account, but I think 2-4 hours seems to be a good balance between complexity and performance
+
+
+- I'm over 4 hours in now, so I will stop here and submit what I have, next to look at would be adding efficiency and other battery constraints which are not taken into account at all in this model and possibly refining the algorithm further
+- To better consider constraints I should track and log more info about number of charges etc.

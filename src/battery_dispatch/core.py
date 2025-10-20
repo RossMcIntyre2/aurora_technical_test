@@ -20,15 +20,43 @@ class CommitmentEvaluation:
     revenue: float
 
 
+NUMBER_OF_HOURS_TO_LOOK_AHEAD = 10
+
+
 def create_market_from_data(csv_path: str, interval_hours: float) -> Market:
     prices = pd.read_csv(csv_path, parse_dates=True)
     price_series = pd.Series(
         data=prices["price [£/MWh]"].values,
         index=pd.to_datetime(prices["timestamp"], format="%m/%d/%y %H:%M"),
     )
+    number_of_intervals_to_look_ahead = int(
+        NUMBER_OF_HOURS_TO_LOOK_AHEAD / interval_hours
+    )
+
+    highest_price_across_next_n_hours = pd.Series(
+        [
+            price_series[
+                i + 1 : i + number_of_intervals_to_look_ahead + 1
+            ].max()  # if i + number_of_intervals_to_look_ahead < len(price_series)
+            for i in range(len(price_series))
+        ]
+    )
+    highest_price_across_next_n_hours.index = price_series.index
+
+    lowest_price_across_next_n_hours = pd.Series(
+        [
+            price_series[
+                i + 1 : i + number_of_intervals_to_look_ahead + 1
+            ].min()  # if i + number_of_intervals_to_look_ahead < len(price_series)
+            for i in range(len(price_series))
+        ]
+    )
+    lowest_price_across_next_n_hours.index = price_series.index
     market = Market(
         name=f"Market_{interval_hours}h",
         prices=price_series,
+        highest_price_across_next_n_hours=highest_price_across_next_n_hours,
+        lowest_price_across_next_n_hours=lowest_price_across_next_n_hours,
         interval_hours=interval_hours,
     )
     return market
@@ -59,12 +87,6 @@ def run_battery_simulation_for_scenario(
     battery: Battery,
     all_markets: list[Market],
 ) -> None:
-    # This is for a first pass, maybe could do some weighting
-    # in future, but we should replace this anyway with a smarter approach
-    average_market_price = sum([market.average_price for market in all_markets]) / len(
-        all_markets
-    )
-
     min_interval = min([market.interval_hours for market in all_markets])
     max_interval = max([market.interval_hours for market in all_markets])
 
@@ -83,7 +105,7 @@ def run_battery_simulation_for_scenario(
         battery.commit_expired_commitments(current_timestamp=timestamp)
 
         best_commitments: list[CommitmentEvaluation] = []
-        # Effective profit because the plan is to compare against the average -
+        # Effective profit because the plan is to compare against the rolling average -
         # using this method I can only really evaluate profit at the end of the interval
         best_effective_profit = 0.0
 
@@ -129,7 +151,6 @@ def run_battery_simulation_for_scenario(
                     market=market,
                     price=price,
                     timestamp=timestamp,
-                    average_market_price=average_market_price,
                     evaluations_by_battery_state=evaluations_by_battery_state,
                 )
 
@@ -171,7 +192,6 @@ def attempt_charge(
     market: Market,
     price: float,
     timestamp: pd.DatetimeIndex,
-    average_market_price: float,
     evaluations_by_battery_state: dict[BatteryState, list[CommitmentEvaluation]],
 ) -> None:
     energy = battery.max_charge_mw * duration.total_seconds() / 3600
@@ -179,10 +199,14 @@ def attempt_charge(
         energy = battery.available_capacity(current_timestamp=timestamp)
 
     cost = price * energy
-    average_cost_for_energy = average_market_price * energy
-    cost_improvement_from_average = average_cost_for_energy - cost
-    print(cost_improvement_from_average)
-    if cost_improvement_from_average > 0:
+    future_best_revenue_for_energy = (
+        market.highest_price_across_next_n_hours[timestamp] * energy
+    )
+    expected_profit = future_best_revenue_for_energy - cost
+    if (
+        expected_profit > 0
+        and price < market.lowest_price_across_next_n_hours[timestamp]
+    ):
         charge_commitment = BatteryCommitment(
             market=market,
             commitment_type=BatteryCommitmentType.CHARGE,
@@ -192,7 +216,7 @@ def attempt_charge(
         )
         evaluations_by_battery_state[battery_state].append(
             CommitmentEvaluation(
-                revenue=cost_improvement_from_average,
+                revenue=expected_profit,
                 commitment=charge_commitment,
             )
         )
@@ -205,7 +229,6 @@ def attempt_discharge(
     market: Market,
     price: float,
     timestamp: pd.DatetimeIndex,
-    average_market_price: float,
     evaluations_by_battery_state: dict[BatteryState, list[CommitmentEvaluation]],
 ) -> None:
     energy = battery.max_discharge_mw * duration.total_seconds() / 3600
@@ -213,9 +236,14 @@ def attempt_discharge(
         energy = battery.state_of_charge_mwh
 
     revenue = price * energy
-    average_revenue_for_energy = average_market_price * energy
-    revenue_improvement_from_average = revenue - average_revenue_for_energy
-    if revenue_improvement_from_average > 0:
+    future_lowest_cost_for_energy = (
+        market.lowest_price_across_next_n_hours[timestamp] * energy
+    )
+    expected_profit = revenue - future_lowest_cost_for_energy
+    if (
+        expected_profit > 0
+        and price > market.highest_price_across_next_n_hours[timestamp]
+    ):
         discharge_commitment = BatteryCommitment(
             market=market,
             commitment_type=BatteryCommitmentType.DISCHARGE,
@@ -225,7 +253,7 @@ def attempt_discharge(
         )
         evaluations_by_battery_state[battery_state].append(
             CommitmentEvaluation(
-                revenue=revenue_improvement_from_average,
+                revenue=expected_profit,
                 commitment=discharge_commitment,
             )
         )

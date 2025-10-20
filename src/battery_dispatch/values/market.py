@@ -11,6 +11,8 @@ import pandas as pd
 class Market:
     name: str
     prices: pd.Series[float]
+    highest_price_across_next_n_hours: pd.Series[float]
+    lowest_price_across_next_n_hours: pd.Series[float]
     interval_hours: float
 
     def interval_timedelta(self) -> pd.Timedelta:

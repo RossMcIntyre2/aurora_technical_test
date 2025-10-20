@@ -181,7 +181,8 @@ class Battery:
                 f"Committed to {commitment.commitment_type.name} "
                 f"{actual_energy_committed} MWh from "
                 f"{commitment.start_time} to {commitment.end_time}."
-                f"on market {commitment.market.name}"
+                f"on market {commitment.market.name} at price {commitment.market.prices[commitment.start_time]}."
+                f"Current state of charge: {self.state_of_charge_mwh} MWh."
             )
 
         commitment_copy = copy.deepcopy(commitment)

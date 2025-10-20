@@ -59,6 +59,12 @@ class DataBuilder:
         self,
         market_name: Union[Undefined, str] = undefined,
         prices: Union[Undefined, pd.Series[float]] = undefined,
+        highest_price_across_next_n_hours: Union[
+            Undefined, pd.Series[float]
+        ] = undefined,
+        lowest_price_across_next_n_hours: Union[
+            Undefined, pd.Series[float]
+        ] = undefined,
         interval_hours: Union[Undefined, float] = undefined,
     ) -> Market:
         if market_name is undefined:
@@ -70,12 +76,26 @@ class DataBuilder:
                 index=pd.date_range(start="2025-01-01 00:00", periods=4, freq="1h"),
             )
 
+        if highest_price_across_next_n_hours is undefined:
+            highest_price_across_next_n_hours = pd.Series(
+                data=[50.0, 60.0, 60.0, 60.0],
+                index=pd.date_range(start="2025-01-01 00:00", periods=4, freq="1h"),
+            )
+
+        if lowest_price_across_next_n_hours is undefined:
+            lowest_price_across_next_n_hours = pd.Series(
+                data=[45.0, 45.0, 55.0, 60.0],
+                index=pd.date_range(start="2025-01-01 00:00", periods=4, freq="1h"),
+            )
+
         if interval_hours is undefined:
             interval_hours = 1.0
 
         return Market(
             name=market_name,
             prices=prices,
+            highest_price_across_next_n_hours=highest_price_across_next_n_hours,
+            lowest_price_across_next_n_hours=lowest_price_across_next_n_hours,
             interval_hours=interval_hours,
         )
 

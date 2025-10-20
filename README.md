@@ -62,16 +62,16 @@ Decisions made during:
   - Initially getting worse results since I am buying and selling whenever there is a better price in future, meaning I a getting a loss
   - Instead checking that I'm at a local minimum or maximum fixes this and gives much better results
   - A quick test with varying the number of hours to look ahead:
-1: `Total Revenue: 903753.64 GBP, Total Cost: 691822.99 GBP, Total Profit: 211930.64 GBP, Final State of Charge: 3.00 MWh`
-2: `Total Revenue: 660886.75 GBP, Total Cost: 449344.50 GBP, Total Profit: 211542.25 GBP, Final State of Charge: 3.00 MWh`
-3: `Total Revenue: 567225.09 GBP, Total Cost: 360220.72 GBP, Total Profit: 207004.37 GBP, Final State of Charge: 3.00 MWh`
-4: `Total Revenue: 513492.61 GBP, Total Cost: 311774.47 GBP, Total Profit: 201718.15 GBP, Final State of Charge: 3.00 MWh`
-5: `Total Revenue: 475872.96 GBP, Total Cost: 278322.83 GBP, Total Profit: 197550.13 GBP, Final State of Charge: 3.00 MWh`
-6: `Total Revenue: 444093.80 GBP, Total Cost: 250792.82 GBP, Total Profit: 193300.99 GBP, Final State of Charge: 3.00 MWh`
-7: `Total Revenue: 407623.35 GBP, Total Cost: 221019.95 GBP, Total Profit: 186603.40 GBP, Final State of Charge: 3.00 MWh`
-8: `Total Revenue: 366222.98 GBP, Total Cost: 189479.30 GBP, Total Profit: 176743.68 GBP, Final State of Charge: 3.00 MWh`
-9: `Total Revenue: 34768.00 GBP, Total Cost: 166820.85 GBP, Total Profit: 167947.15 GBP, Final State of Charge: 3.00 MWh`
-10: `Total Revenue: 310869.16 GBP, Total Cost: 150210.33 GBP, Total Profit: 160658.83 GBP, Final State of Charge: 3.00 MWh`
+1: `Total Revenue: 751813.03 GBP, Total Cost: 527411.24 GBP, Total Profit: 224401.79 GBP, Final State of Charge: 2.00 MWh`
+2: `Total Revenue: 578675.99 GBP, Total Cost: 365779.04 GBP, Total Profit: 212896.94 GBP, Final State of Charge: 2.00 MWh`
+3: `Total Revenue: 503920.46 GBP, Total Cost: 299147.13 GBP, Total Profit: 204773.34 GBP, Final State of Charge: 2.00 MWh`
+4: `Total Revenue: 456785.43 GBP, Total Cost: 259832.82 GBP, Total Profit: 196952.61 GBP, Final State of Charge: 2.00 MWh`
+5: `Total Revenue: 419631.25 GBP, Total Cost: 229647.02 GBP, Total Profit: 189984.23 GBP, Final State of Charge: 2.00 MWh`
+6: `Total Revenue: 388349.88 GBP, Total Cost: 205180.90 GBP, Total Profit: 183168.98 GBP, Final State of Charge: 2.00 MWh`
+7: `Total Revenue: 356682.32 GBP, Total Cost: 181473.64 GBP, Total Profit: 175208.68 GBP, Final State of Charge: 2.00 MWh`
+8: `Total Revenue: 324131.68 GBP, Total Cost: 158289.82 GBP, Total Profit: 165841.86 GBP, Final State of Charge: 2.00 MWh`
+9: `Total Revenue: 298280.70 GBP, Total Cost: 140735.93 GBP, Total Profit: 157544.77 GBP, Final State of Charge: 2.00 MWh`
+10: `Total Revenue: 278939.15 GBP, Total Cost: 127922.17 GBP, Total Profit: 151016.98 GBP, Final State of Charge: 2.00 MWh`
   - The sweet spot here is kind of difficult to tell without taking considerations about battery wear etc. into account, but I think 2-4 hours seems to be a good balance between complexity and performance
 
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import dataclasses
 
@@ -20,7 +22,39 @@ class CommitmentEvaluation:
     revenue: float
 
 
-NUMBER_OF_HOURS_TO_LOOK_AHEAD = 10
+NUMBER_OF_HOURS_TO_LOOK_AHEAD = 3
+
+
+def _get_highest_price_across_next_n_hours_series(
+    price_series: pd.Series[float],
+    number_of_intervals_to_look_ahead: int,
+) -> pd.Series[float]:
+    highest_price_across_next_n_hours = pd.Series(
+        [
+            price_series[
+                i + 1 : i + number_of_intervals_to_look_ahead + 1
+            ].max()  # if i + number_of_intervals_to_look_ahead < len(price_series)
+            for i in range(len(price_series))
+        ]
+    )
+    highest_price_across_next_n_hours.index = price_series.index
+    return highest_price_across_next_n_hours
+
+
+def _get_lowest_price_across_next_n_hours_series(
+    price_series: pd.Series[float],
+    number_of_intervals_to_look_ahead: int,
+) -> pd.Series[float]:
+    lowest_price_across_next_n_hours = pd.Series(
+        [
+            price_series[
+                i + 1 : i + number_of_intervals_to_look_ahead + 1
+            ].min()  # if i + number_of_intervals_to_look_ahead < len(price_series)
+            for i in range(len(price_series))
+        ]
+    )
+    lowest_price_across_next_n_hours.index = price_series.index
+    return lowest_price_across_next_n_hours
 
 
 def create_market_from_data(csv_path: str, interval_hours: float) -> Market:
@@ -33,25 +67,15 @@ def create_market_from_data(csv_path: str, interval_hours: float) -> Market:
         NUMBER_OF_HOURS_TO_LOOK_AHEAD / interval_hours
     )
 
-    highest_price_across_next_n_hours = pd.Series(
-        [
-            price_series[
-                i + 1 : i + number_of_intervals_to_look_ahead + 1
-            ].max()  # if i + number_of_intervals_to_look_ahead < len(price_series)
-            for i in range(len(price_series))
-        ]
+    highest_price_across_next_n_hours = _get_highest_price_across_next_n_hours_series(
+        price_series=price_series,
+        number_of_intervals_to_look_ahead=number_of_intervals_to_look_ahead,
     )
-    highest_price_across_next_n_hours.index = price_series.index
 
-    lowest_price_across_next_n_hours = pd.Series(
-        [
-            price_series[
-                i + 1 : i + number_of_intervals_to_look_ahead + 1
-            ].min()  # if i + number_of_intervals_to_look_ahead < len(price_series)
-            for i in range(len(price_series))
-        ]
+    lowest_price_across_next_n_hours = _get_lowest_price_across_next_n_hours_series(
+        price_series=price_series,
+        number_of_intervals_to_look_ahead=number_of_intervals_to_look_ahead,
     )
-    lowest_price_across_next_n_hours.index = price_series.index
     market = Market(
         name=f"Market_{interval_hours}h",
         prices=price_series,
@@ -100,6 +124,34 @@ def run_battery_simulation_for_scenario(
         end=close_time + pd.Timedelta(hours=max_interval),
         freq=f"{min_interval}h",
     )
+    highest_price_across_next_n_hours = pd.Series(
+        [
+            max(
+                [
+                    market.highest_price_across_next_n_hours.get(
+                        timestamp, float("-inf")
+                    )
+                    for market in all_markets
+                ]
+            )
+            for timestamp in timestamps
+        ]
+    )
+    highest_price_across_next_n_hours.index = timestamps
+
+    lowest_price_across_next_n_hours = pd.Series(
+        [
+            min(
+                [
+                    market.lowest_price_across_next_n_hours.get(timestamp, float("inf"))
+                    for market in all_markets
+                ]
+            )
+            for timestamp in timestamps
+        ]
+    )
+    lowest_price_across_next_n_hours.index = timestamps
+
     for timestamp in timestamps:
         # Commit commitments now, as this represents the end of the previous interval
         battery.commit_expired_commitments(current_timestamp=timestamp)
@@ -151,6 +203,8 @@ def run_battery_simulation_for_scenario(
                     market=market,
                     price=price,
                     timestamp=timestamp,
+                    highest_price_across_next_n_hours=highest_price_across_next_n_hours,
+                    lowest_price_across_next_n_hours=lowest_price_across_next_n_hours,
                     evaluations_by_battery_state=evaluations_by_battery_state,
                 )
 
@@ -192,6 +246,8 @@ def attempt_charge(
     market: Market,
     price: float,
     timestamp: pd.DatetimeIndex,
+    highest_price_across_next_n_hours: pd.Series[float],
+    lowest_price_across_next_n_hours: pd.Series[float],
     evaluations_by_battery_state: dict[BatteryState, list[CommitmentEvaluation]],
 ) -> None:
     energy = battery.max_charge_mw * duration.total_seconds() / 3600
@@ -200,13 +256,10 @@ def attempt_charge(
 
     cost = price * energy
     future_best_revenue_for_energy = (
-        market.highest_price_across_next_n_hours[timestamp] * energy
+        highest_price_across_next_n_hours[timestamp] * energy
     )
     expected_profit = future_best_revenue_for_energy - cost
-    if (
-        expected_profit > 0
-        and price < market.lowest_price_across_next_n_hours[timestamp]
-    ):
+    if expected_profit > 0 and price < lowest_price_across_next_n_hours[timestamp]:
         charge_commitment = BatteryCommitment(
             market=market,
             commitment_type=BatteryCommitmentType.CHARGE,
@@ -229,6 +282,8 @@ def attempt_discharge(
     market: Market,
     price: float,
     timestamp: pd.DatetimeIndex,
+    highest_price_across_next_n_hours: pd.Series[float],
+    lowest_price_across_next_n_hours: pd.Series[float],
     evaluations_by_battery_state: dict[BatteryState, list[CommitmentEvaluation]],
 ) -> None:
     energy = battery.max_discharge_mw * duration.total_seconds() / 3600
@@ -236,14 +291,9 @@ def attempt_discharge(
         energy = battery.state_of_charge_mwh
 
     revenue = price * energy
-    future_lowest_cost_for_energy = (
-        market.lowest_price_across_next_n_hours[timestamp] * energy
-    )
+    future_lowest_cost_for_energy = lowest_price_across_next_n_hours[timestamp] * energy
     expected_profit = revenue - future_lowest_cost_for_energy
-    if (
-        expected_profit > 0
-        and price > market.highest_price_across_next_n_hours[timestamp]
-    ):
+    if expected_profit > 0 and price > highest_price_across_next_n_hours[timestamp]:
         discharge_commitment = BatteryCommitment(
             market=market,
             commitment_type=BatteryCommitmentType.DISCHARGE,

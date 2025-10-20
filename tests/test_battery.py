@@ -4,6 +4,7 @@ import pytest
 from battery_dispatch.values.battery import (
     BatteryCommitmentType,
     BatteryState,
+    CannotAddCommitmentError,
     CannotDispatchBatteryError,
 )
 from tests.data_builder import DataBuilder
@@ -112,15 +113,45 @@ class TestBattery:
                 start_time="2025-01-01 00:00:00",
                 end_time="2025-01-01 01:00:00",
             ),
-            self._data_builder.add_battery_commitment(
-                commitment_type=BatteryCommitmentType.DISCHARGE,
-                energy_mwh=15,
-                start_time="2025-01-01 02:00:00",
-                end_time="2025-01-01 03:00:00",
-            ),
         ]
         battery.add_commitments(new_commitments=new_commitments)
-        assert len(battery.commitments) == 2
+        assert len(battery.commitments) == 1
+
+    def test_can_only_have_one_commitment_at_a_time(self):
+        battery = self._data_builder.add_battery()
+        commitment_1 = self._data_builder.add_battery_commitment(
+            commitment_type=BatteryCommitmentType.CHARGE,
+            energy_mwh=10,
+            start_time="2025-01-01 00:00:00",
+            end_time="2025-01-01 01:00:00",
+        )
+        battery.add_commitments(new_commitments=[commitment_1])
+
+        commitment_2 = self._data_builder.add_battery_commitment(
+            commitment_type=BatteryCommitmentType.DISCHARGE,
+            energy_mwh=10,
+            start_time="2025-01-01 00:30:00",
+            end_time="2025-01-01 01:30:00",
+        )
+        with pytest.raises(CannotAddCommitmentError):
+            battery.add_commitments(new_commitments=[commitment_2])
+
+    def cannot_add_multiple_commitments_at_once(self):
+        battery = self._data_builder.add_battery()
+        commitment_1 = self._data_builder.add_battery_commitment(
+            commitment_type=BatteryCommitmentType.CHARGE,
+            energy_mwh=10,
+            start_time="2025-01-01 00:00:00",
+            end_time="2025-01-01 01:00:00",
+        )
+        commitment_2 = self._data_builder.add_battery_commitment(
+            commitment_type=BatteryCommitmentType.DISCHARGE,
+            energy_mwh=10,
+            start_time="2025-01-01 00:30:00",
+            end_time="2025-01-01 01:30:00",
+        )
+        with pytest.raises(CannotAddCommitmentError):
+            battery.add_commitments(new_commitments=[commitment_1, commitment_2])
 
     def test_cannot_commit_to_discharge_if_charging(self):
         commitment = self._data_builder.add_battery_commitment(

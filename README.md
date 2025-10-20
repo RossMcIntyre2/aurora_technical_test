@@ -52,3 +52,6 @@ Decisions made during:
   - Maybe we should have had a service like a `BatteryManager` to handle this, but it would take too long to refactor now
   - This is mainly because the cost and revenue are dependent on the final amount of change dispatched, which I only evaluate at the point of committing to a market
   - This is maybe a weakness in this approach
+- Although I built this to handle multiple concurrent commitments, on reflection I decided to change to only allowing one at a time
+  - This is because we assume any current commitments are using the maximum power available, and we have committed to them already so we cannot take on more commitments
+  - This would simplify the logic a bit in places, but leaving as it is for now as it offers better flexibility if we want to change this assumption later

@@ -8,6 +8,7 @@ from battery_dispatch.values.battery import (
     BatteryCommitment,
     BatteryCommitmentType,
     BatteryState,
+    CannotAddCommitmentError,
     CannotDispatchBatteryError,
 )
 from battery_dispatch.values.market import Market
@@ -34,7 +35,6 @@ def create_market_from_data(csv_path: str, interval_hours: float) -> Market:
 
 
 def run_battery_simulation() -> None:
-    print("Running battery simulation... (this is a placeholder function)")
     market_1 = create_market_from_data(
         csv_path="src/data/half-hourly-data.csv", interval_hours=0.5
     )
@@ -153,9 +153,10 @@ def run_battery_simulation_for_scenario(
             assert len(best_commitments) == 1
             for evaluation in best_commitments:
                 commitment = evaluation.commitment
-                battery.add_commitments(new_commitments=[commitment])
-
-        print("\n")
+                try:
+                    battery.add_commitments(new_commitments=[commitment])
+                except CannotAddCommitmentError:
+                    continue
 
     print(
         f"\n Total Revenue: {battery.revenue:.2f} GBP, Total Cost: {battery.cost:.2f} GBP, Total Profit: {battery.revenue - battery.cost:.2f} GBP, Final State of Charge: {battery.state_of_charge_mwh:.2f} MWh"

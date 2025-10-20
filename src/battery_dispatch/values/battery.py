@@ -11,6 +11,10 @@ class CannotDispatchBatteryError(Exception):
     pass
 
 
+class CannotAddCommitmentError(Exception):
+    pass
+
+
 class BatteryCommitmentType(Enum):
     CHARGE = "charge"
     DISCHARGE = "discharge"
@@ -132,6 +136,12 @@ class Battery:
             )
 
     def add_commitments(self, *, new_commitments: list[BatteryCommitment]) -> None:
+        if len(self.commitments) != 0 or len(new_commitments) != 1:
+            # Assume any current commitments are using the maximum power available,
+            # and we have committed to them already so we cannot take on more than one commitment
+            raise CannotAddCommitmentError(
+                "Cannot add new commitments to battery with existing commitments."
+            )
         self.commitments += new_commitments
 
     def commit(
